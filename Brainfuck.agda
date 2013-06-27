@@ -33,6 +33,10 @@ if_then_else : {a : Set} -> Bool -> a -> a -> a
 if True then t else f = t
 if False then t else f = f
 
+data List (a : Set) : Set where
+  Nil : List a 
+  Cons : a -> List a -> List a
+
 ---------- Bits and Bytes ----------
 
 data Bit : Set where
@@ -61,10 +65,20 @@ isZero Nil = True
 isZero (Cons O xs) = isZero xs
 isZero (Cons I xs) = False
 
+zero : {n : Nat} -> Vec Bit n
+zero {Zero} = Nil
+zero {Succ k} = Cons O zero
+
 ---------- The state of the machine ----------
 
 data Stream (a : Set) : Set where
   Cons : a -> ∞ (Stream a) -> Stream a
+
+
+
+zeros : Stream Byte
+zeros = Cons zero (Thunk zeros)
+
 
 record State : Set where
   constructor _,_,_,_,_
@@ -73,7 +87,10 @@ record State : Set where
     current : Byte
     right : Stream Byte
     stdin : Stream Byte
-    stdout : Stream Byte
+    stdout : List Byte
+
+init : Stream Byte -> State
+init stdin = zeros , zero , zeros , stdin , Nil
 
 stepLeft : State -> State
 stepLeft (Cons left lefts , current , right , stdin , stdout) = 
@@ -85,7 +102,7 @@ stepRight (left , current , Cons right rights , stdin , stdout) =
 
 output : State -> State
 output (left , current , right , stdin , stdout) = 
-  left , current , right , stdin , (Cons current (Thunk stdout))
+  left , current , right , stdin , (Cons current stdout)
 
 input : State -> State
 input (left , current , right , Cons b stdin , stdout) = 
@@ -138,7 +155,10 @@ data Trace : Set where
   Step : State -> ∞ Trace -> Trace
   Stop : State -> Trace
 
-interpret : Pair Command State -> Trace
-interpret (cmd , s) with step (cmd , s)
-interpret (cmd , s) | Nothing = Stop s
-interpret (cmd , s) | Just x = Step s (Thunk (interpret x))
+run : Pair Command State -> Trace
+run (cmd , s) with step (cmd , s)
+run (cmd , s) | Nothing = Stop s
+run (cmd , s) | Just x = Step s (Thunk (run x))
+
+interpret : Command -> (stdin : Stream Byte) -> Trace
+interpret c stdin = run (c , init stdin)
