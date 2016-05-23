@@ -22,8 +22,6 @@ data Nat : Set where
   Succ : Nat -> Nat
 
 {-# BUILTIN NATURAL Nat #-}
-{-# BUILTIN ZERO Zero #-}
-{-# BUILTIN SUC Succ #-}
 
 data Bool : Set where
   True : Bool
@@ -127,6 +125,8 @@ data Command : Set where
   ,_ : (c : Command) -> Command
   [_]_ : (body : Command) -> (c : Command) -> Command
   □ : Command
+
+infix 25 [_]_
 
 -- sequence c1 c2 computes a new command equivalent to c1 followed by c2
 sequence : Command -> Command -> Command 
